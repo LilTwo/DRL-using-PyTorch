@@ -1,2 +1,2 @@
 # DRL-using-PyTorch
-PyTorch implementation of Deep Reinforcement Algorithm
+PyTorch implementations of Deep Reinforcement Algorithms
