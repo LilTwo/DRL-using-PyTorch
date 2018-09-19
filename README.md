@@ -11,7 +11,7 @@ NoisyNets add randomness to parameters of the network.
 With the presence of noisy layers, network has the ability to learn a domain-specific exploration strategy,  
 rather than using epsilon-greedy and increase epsilon manualy during learning.  
 From my expeience, NoisyNets usually need a smaller leaning rate than nomal nets to work well,  
-and is way more sensitive with parameters's initialization.  
+and is way more sensitive to parameters's initial value.  
 In MountainCar environment, there are some chance that the car never hit the top in first epsiode. 
 I'm not sure whether this is because I wrote somthing wrong.
 
