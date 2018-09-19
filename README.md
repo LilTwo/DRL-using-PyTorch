@@ -18,4 +18,4 @@ I'm not sure whether this is because I wrote somthing wrong.
 In the original paper, auothrs suggest that the summation of "sigma" can be view as the stochasticity of the layer.  
 This have been implemented in "randomness" method of "NoisyLinear" class, but I only account "sigma" of bias term,  
 because the weight matrix term involves input from the last layer which can change dramaticaly over epoch.  
-and then normalize with "mu", because the magnitude of "sigma" is only meaningful when compares to "mu".  
+And before the summation each "sigma" is normalized with "mu", because the magnitude of "sigma" is only meaningful when compares to "mu".  
