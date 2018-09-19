@@ -4,7 +4,7 @@ PyTorch implementations of Deep Reinforcement Algorithms
 All the following DQN variation contain DDQN, prioritized replay, fixed target
 
 ## DQN with NoisyNet:  
-https://github.com/LilTwo/DRL-using-PyTorch/tree/master/DQN_NoisyNet
+https://github.com/LilTwo/DRL-using-PyTorch/tree/master/DQN_NoisyNet. 
 reference：https://arxiv.org/pdf/1706.10295.pdf
 
 NoisyNets add randomness to parameters of the network.  
