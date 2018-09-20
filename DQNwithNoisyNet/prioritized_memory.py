@@ -1,6 +1,9 @@
 import random
 import numpy as np
-from .SumTree import SumTree
+if __package__:
+    from .SumTree import SumTree
+else:
+    from SumTree import SumTree
 import torch.nn as nn
 import torch
 import math

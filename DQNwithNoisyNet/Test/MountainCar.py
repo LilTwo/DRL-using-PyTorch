@@ -1,12 +1,18 @@
-import numpy as np
+import sys
+from os import path
+local=path.abspath(__file__)
+root=path.dirname(path.dirname(path.dirname(local)))
+if root not in sys.path:
+    sys.path.append(root)
+
 import gym
 import torch
 import matplotlib.pyplot as plt
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-import DQN_NoisyNet
-from NoisyLayer import  NoisyLinear
+from DQNwithNoisyNet.NoisyLayer import NoisyLinear
+from DQNwithNoisyNet import DQN_NoisyNet
 
 class NoisyNet(nn.Module):
     def __init__(self):
@@ -77,8 +83,7 @@ if __name__ == "__main__":
     s = env.reset()
     s = torch.Tensor(s)
     A=[[0],[1],[2]]
-    dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2, lr=0.001, noisy=True, gamma=0.9, N=10000, C=500,actionFinder=lambda x:A)
-
+    dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2, lr=0.001, noisy=True, gamma=0.9, N=10000, C=500, actionFinder=lambda x:A)
     process = []
     epoch = 80
     eps_start = 0.05

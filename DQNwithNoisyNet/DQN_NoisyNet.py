@@ -3,9 +3,14 @@ import random
 from torch import optim
 import torch
 import math
-from .prioritized_memory import Memory, WeightedMSE
 
-#(s,a) => Q(s,a)
+if __package__:
+    from .prioritized_memory import Memory, WeightedMSE
+else:
+    from prioritized_memory import Memory, WeightedMSE
+
+
+# (s,a) => Q(s,a)
 class DeepQL:
     def __init__(self, Net, noisy=True, eps=0.9, lr=5e-3, gamma=0.9, mbsize=20, C=100, N=500, L2=0, actionFinder=None):
         self.exp = []
@@ -17,7 +22,7 @@ class DeepQL:
         self.net2 = Net()
         self.net2.load_state_dict(self.net.state_dict())
         self.net2.eval()
-        self.C = C #for target replacement
+        self.C = C  # for target replacement
         self.c = 0
         self.replay = Memory(capacity=N)
         self.loss = WeightedMSE()
@@ -108,7 +113,7 @@ class DeepQL:
             self.c += 1
 
 
-#s => Q[s,a1], Q[s,a2]...
+# s => Q[s,a1], Q[s,a2]...
 class DeepQLv2:
     def __init__(self, Net, noisy=True, eps=0.9, lr=5e-3, gamma=0.9, mbsize=20, C=100, N=500, L2=0, actionFinder=None):
         self.exp = []
@@ -126,8 +131,8 @@ class DeepQLv2:
         self.eps = eps
         self.noisy = noisy
         self.actionFinder = actionFinder
-        self.A = []
-        # (state:tensor => Action :List[List])
+        *_,last=self.net.children()
+        self.A = list(range(last.out_features))
 
     def act(self, state):
         # state:list[float] A:list[list]
@@ -152,8 +157,6 @@ class DeepQLv2:
         net = self.net
         net.eval()
         Q = net(state)
-        if not self.A:
-            self.A = list(range(len(Q))) #[0,1,2,3...]
         net.train()
         return [int(Q.argmax())]
 

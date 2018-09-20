@@ -1,12 +1,18 @@
-import numpy as np
+from os import path
+import sys
+local=path.abspath(__file__)
+root=path.dirname(path.dirname(path.dirname(local)))
+if root not in sys.path:
+    sys.path.append(root)
+
 import gym
 import torch
 import matplotlib.pyplot as plt
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-from NoisyLayer import NoisyLinear
-import DQN_NoisyNet
+from DQNwithNoisyNet.NoisyLayer import NoisyLinear
+from DQNwithNoisyNet import DQN_NoisyNet
 from operator import methodcaller
 
 
@@ -79,7 +85,6 @@ if __name__ == "__main__":
     s = env.reset()
     A = [[0], [1]]
     dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2, noisy=True, lr=0.002, gamma=1, actionFinder=lambda x: A)
-
     process = []
     randomness = []
     epoch = 200
@@ -121,10 +126,10 @@ if __name__ == "__main__":
         plt.show()
     env.close()
 
-    # torch.save(dqn.net.state_dict(),"./model.txt")
+    #torch.save(dqn.net.state_dict(),"./CartPoleExpert.txt")
     # dqn.eps=1
     total = 0
-    # dqn.net.load_state_dict(torch.load("./model.txt"))
+    #dqn.net.load_state_dict(torch.load("./CartPoleExpert.txt"))
     s = env.reset()
     s = torch.Tensor(s)
     while True:

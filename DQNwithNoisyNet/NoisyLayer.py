@@ -39,11 +39,11 @@ class NoisyLinear(nn.Module):
             self.bias_sig.data.zero_()
             self.bias_sig.data = self.bias_sig.data.zero_() + sig0 / self.weight_mu.shape[1]
 
-    def sample(self, zero=1):
+    def sample(self):
         size_in = self.in_features
         size_out = self.out_features
-        noise_in = f(self.dist.sample((1, size_in))) * zero
-        noise_out = f(self.dist.sample((1, size_out))) * zero
+        noise_in = f(self.dist.sample((1, size_in)))
+        noise_out = f(self.dist.sample((1, size_out)))
         self.weight = self.weight_mu + self.weight_sig * torch.mm(noise_out.t(), noise_in)
         self.bias = (self.bias_mu + self.bias_sig * noise_out).squeeze()
 
