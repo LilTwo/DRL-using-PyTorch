@@ -24,4 +24,4 @@ reference：https://arxiv.org/pdf/1704.03732.pdf
 
 Since model-free RL algorithms like DQN know nothing about the environment, they usually need lots of exploration to find out what is good or bad at the begining, especially when dealing with large state/action space and sparse reward.  
 So it would be nice if there are some demonstrations produced by human or another well-trained agent.
-DQfD proivded a method to leverage these demonstrations by first pre-training the model on the demonstartion data only before it starts to interact with the environment.  
+DQfD proivded a method to leverage these demonstrations by first pre-training the model on the demonstartion data solely before it starts to interact with the environment.  
