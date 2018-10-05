@@ -1,0 +1,4 @@
+*.npy
+*.txt
+*.swp
+test.py

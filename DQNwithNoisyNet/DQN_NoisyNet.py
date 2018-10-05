@@ -10,9 +10,8 @@ else:
     from prioritized_memory import Memory, WeightedMSE
 
 
-# (s,a) => Q(s,a)
-class DeepQL:
-    def __init__(self, Net, noisy=True, eps=0.9, lr=5e-3, gamma=0.9, mbsize=20, C=100, N=500, L2=0, actionFinder=None):
+class AbstractDeepQL:
+    def __init__(self, Net, actionFinder=None,eps=0.9, lr=5e-3, gamma=0.9, mbsize=20, C=100, N=500, L2=0):
         self.exp = []
         self.eps = eps
         self.net = Net()
@@ -26,83 +25,56 @@ class DeepQL:
         self.c = 0
         self.replay = Memory(capacity=N)
         self.loss = WeightedMSE()
+        self.noisy = hasattr(self.net, "sample")
         self.actionFinder = actionFinder
-        self.noisy = noisy
         # (state:tensor => Action :List[List])
 
-    def act(self, state):
-        state = torch.Tensor(state)
-        A = self.actionFinder(state)
-        if self.noisy:
-            self.net.sample()
-            maxA = self.findMaxA(state)
-            return maxA
-        maxA = self.findMaxA(state)
-        r = random.random()
-        a = maxA if self.eps > r else random.sample(A, 1)[0]
+    def calcQ(self, net, s, A):
+        raise NotImplementedError
 
-        return a
+    def act(self, state):
+        raise NotImplementedError
+
+    def findMaxA(self, state):
+        raise NotImplementedError
 
     def sample(self):
         return self.replay.sample(self.mbsize)
 
-    def store(self, data, error):
-        self.replay.add(error, data)
-
-    def findMaxA(self, state):
-        net = self.net
-        A = self.actionFinder(state)
-
-        net.eval()
-        Q = [net(state, a) for a in torch.Tensor(A)]
-        Q = torch.Tensor(Q)
-        net.train()
-        return A[Q.argmax()]
+    def store(self, data):
+        self.replay.add(data)
 
     def storeTransition(self, s, a, r, s_, done):
         s = torch.Tensor(s)
         s_ = torch.Tensor(s_)
-        error = self.calcError((s, a, r, s_, done))
-        self.store((s, a, r, s_, done), error)
+        self.store((s, a, r, s_, done))
 
-    def calcError(self, sample):
-        s, a, r, s_, done = sample
-        a = torch.Tensor(a)
+    def calcTD(self, samples):
         if self.noisy:
-            self.net.sample()
-        maxA = torch.Tensor(self.findMaxA(s_))
+            self.net.sample()  # for choosing action
+        alls, alla, allr, alls_, alldone, *_ = zip(*samples)
+        maxA = [self.findMaxA(s_) for s_ in alls_]
         if self.noisy:
-            self.net.sample()
-            self.net2.sample()
-        target = r if done else r + self.gamma * self.net2(s_, maxA)
-        error = self.net(s, a) - target
-        error = float(error)
-        return math.fabs(error)
+            self.net.sample()  # for prediction
+            self.net2.sample()  # for target
+
+        Qtarget = torch.Tensor(allr)
+        Qtarget[torch.tensor(alldone) != 1] += self.gamma * self.calcQ(self.net2, alls_, maxA)[
+            torch.tensor(alldone) != 1]
+        Qpredict = self.calcQ(self.net, alls, alla)
+        return Qpredict, Qtarget
 
     def update(self):
         self.opt.zero_grad()
-
         samples, idxs, IS = self.sample()
-        if self.noisy:
-            self.net.sample()  # for choosing action
-        maxA = [self.findMaxA(s[3]) for s in samples]
-        maxA = torch.Tensor(maxA)
-        s, a, *_ = zip(*samples)
-        s = torch.stack(s)
-        a = torch.Tensor(a)
-        if self.noisy:
-            self.net.sample()  # for prediction
-            self.net2.sample()  # for estimating Q
-        predict = self.net(s, a)[:, 0]
-        look_ahead = [r if done else r + self.gamma * self.net2(s_, maxA[i]) for i, (s, a, r, s_, done) in
-                      enumerate(samples)]
-        target = torch.Tensor(look_ahead)
+        Qpredict, Qtarget = self.calcTD(samples)
 
-        errors, ls = self.loss(predict, target, IS)
-        ls.backward()
         for i in range(self.mbsize):
-            self.replay.update(idxs[i], errors[i])
+            error = math.fabs(float(Qpredict[i] - Qtarget[i]))
+            self.replay.update(idxs[i], error)
 
+        J = self.loss(Qpredict, Qtarget, IS)
+        J.backward()
         self.opt.step()
 
         if self.c >= self.C:
@@ -113,99 +85,77 @@ class DeepQL:
             self.c += 1
 
 
-# s => Q[s,a1], Q[s,a2]...
-class DeepQLv2:
-    def __init__(self, Net, noisy=True, eps=0.9, lr=5e-3, gamma=0.9, mbsize=20, C=100, N=500, L2=0, actionFinder=None):
-        self.exp = []
-        self.net = Net()
-        self.opt = optim.Adam(self.net.parameters(), lr=lr, weight_decay=L2)
-        self.gamma = gamma
-        self.mbsize = mbsize
-        self.net2 = Net()
-        self.net2.load_state_dict(self.net.state_dict())
-        self.net2.eval()
-        self.C = C
-        self.c = 0
-        self.replay = Memory(capacity=N)
-        self.loss = WeightedMSE()
-        self.eps = eps
-        self.noisy = noisy
-        self.actionFinder = actionFinder
-        *_,last=self.net.children()
-        self.A = list(range(last.out_features))
+class DeepQL(AbstractDeepQL):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # (state:tensor => Action :List[List])
+
+    def calcQ(self, net, s, A):
+        # 1.single state, one or multiple actions
+        # 2.muliplte states, one action per state
+        if isinstance(s, torch.Tensor) and s.dim() == 1:  # situation 1
+            A = torch.Tensor(A)
+            if A.dim() == 1:
+                return net(s,A)[0]
+            return torch.Tensor([net(s, a) for a in A])
+
+        if not isinstance(s, torch.Tensor):  # situation 2
+            s = torch.stack(s)
+            a = torch.Tensor(A)
+            return net(s, a).squeeze()
 
     def act(self, state):
-        # state:list[float] A:list[list]
+        state = torch.Tensor(state)
+        A = self.actionFinder(state)
+        if self.noisy:
+            self.net.sample()
+            return self.findMaxA(state)
+        maxA = self.findMaxA(state)
+        r = random.random()
+        a = maxA if self.eps > r else random.sample(A, 1)[0]
+        return a
+
+    def findMaxA(self, state):
+        net = self.net
+        net.eval()
+        A = self.actionFinder(state)
+        Q = self.calcQ(self.net, state, A)
+        net.train()
+        return A[Q.argmax()]
+
+
+# s => Q[s,a1], Q[s,a2]...
+class DeepQLv2(AbstractDeepQL):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        *_, last = self.net.children()
+        self.A = list(range(last.out_features))
+
+    def calcQ(self, net, s, A):
+        # 1.single state
+        # 2.muliplte states, one action per state
+        if isinstance(s, torch.Tensor) and s.dim() == 1:  # situation 1
+            return torch.Tensor([net(s)[a] for a in A])
+
+        if not isinstance(s, torch.Tensor):  # situation 2
+            s = torch.stack(s)
+            Q = net(s)
+            A = [a[0] for a in A]
+            return Q[[i for i in range(len(A))],A]
+
+    def act(self, state):
         state = torch.Tensor(state)
         if self.noisy:
             self.net.sample()
-            a = self.findMaxA(state)
-            return list(np.array(a))
+            return self.findMaxA(state)
         maxA = self.findMaxA(state)
         r = random.random()
         a = maxA if self.eps > r else random.sample(self.A, 1)
         return a
 
-    def sample(self):
-        return self.replay.sample(self.mbsize)
-
-    def store(self, data, error):
-        # data (s:tensor,a:list,r:scalar,s_:tensor,done:bool)
-        self.replay.add(error, data)
-
     def findMaxA(self, state):
         net = self.net
         net.eval()
-        Q = net(state)
+        Q = self.calcQ(self.net, state, self.A)
         net.train()
-        return [int(Q.argmax())]
-
-    def storeTransition(self, s, a, r, s_, done):
-        s = torch.Tensor(s)
-        s_ = torch.Tensor(s_)
-        error = self.calcError((s, a, r, s_, done))
-        self.store((s, a, r, s_, done), error)
-
-    def calcError(self, sample):
-        s, a, r, s_, done = sample
-        if self.noisy:
-            self.net.sample()
-        maxA = self.findMaxA(s_)
-        if self.noisy:
-            self.net.sample()
-            self.net2.sample()
-        target = r if done else r + self.gamma * self.net2(s)[maxA[0]]
-        error = self.net(s)[a[0]] - target
-        error = float(error)
-        return math.fabs(error)
-
-    def update(self):
-        self.opt.zero_grad()
-
-        samples, idxs, IS = self.sample()
-        if self.noisy:
-            self.net.sample()  # for choosing action
-        maxA = [self.findMaxA(s[3]) for s in samples]
-        s, a, *_ = zip(*samples)
-        s = torch.stack(s)
-        if self.noisy:
-            self.net.sample()  # for prediction
-            self.net2.sample()  # for estimating Q
-        predict = [self.net(s[i])[a[i][0]] for i in range(self.mbsize)]
-        look_ahead = [r if done else r + self.gamma * self.net2(s_)[maxA[i][0]] for i, (s, a, r, s_, done) in
-                      enumerate(samples)]
-        target = torch.Tensor(look_ahead)
-
-        errors, ls = self.loss(predict, target, IS)
-        ls.backward()
-        for i in range(self.mbsize):
-            self.replay.update(idxs[i], errors[i])
-
-        self.opt.step()
-
-        if self.c >= self.C:
-            self.c = 0
-            self.net2.load_state_dict(self.net.state_dict())
-            self.net2.eval()
-        else:
-            self.c += 1
+        return [self.A[Q.argmax()]]

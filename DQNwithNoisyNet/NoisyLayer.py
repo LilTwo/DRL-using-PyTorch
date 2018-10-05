@@ -23,6 +23,7 @@ class NoisyLinear(nn.Module):
             self.bias_sig = Parameter(torch.Tensor(out_features))
         else:
             self.register_parameter('bias', None)
+            self.bias_mu = None
         self.reset_parameters(sig0)
         self.dist = torch.distributions.Normal(0, 1)
         self.weight = None
@@ -45,10 +46,14 @@ class NoisyLinear(nn.Module):
         noise_in = f(self.dist.sample((1, size_in)))
         noise_out = f(self.dist.sample((1, size_out)))
         self.weight = self.weight_mu + self.weight_sig * torch.mm(noise_out.t(), noise_in)
-        self.bias = (self.bias_mu + self.bias_sig * noise_out).squeeze()
+        if self.bias_mu is not None:
+            self.bias = (self.bias_mu + self.bias_sig * noise_out).squeeze()
 
     def forward(self, input):
-        return F.linear(input, self.weight, self.bias)
+        if self.bias_mu is not None:
+            return F.linear(input, self.weight, self.bias)
+        else:
+            return F.linear(input, self.weight)
 
     def randomness(self):
         size_in = self.in_features

@@ -1,7 +1,8 @@
 from os import path
 import sys
-local=path.abspath(__file__)
-root=path.dirname(path.dirname(path.dirname(local)))
+
+local = path.abspath(__file__)
+root = path.dirname(path.dirname(path.dirname(local)))
 if root not in sys.path:
     sys.path.append(root)
 
@@ -13,9 +14,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from DQNwithNoisyNet.NoisyLayer import NoisyLinear
 from DQNfromDemo import DQfD
-from operator import methodcaller
 import json
 
+
+def plotJE(dqn,color):
+    tree=dqn.replay.tree
+    data = [[d] for d in tree.data[0:500]]
+    JE = list(map(dqn.JE, data))
+    plt.plot(JE, color=color)
 
 class Net(nn.Module):
     def __init__(self):
@@ -85,7 +91,7 @@ if __name__ == "__main__":
     env = gym.make('CartPole-v1')
     s = env.reset()
     A = [[0], [1]]
-    dqn = DQfD.DeepQL(Net, noisy=False, lr=0.005, gamma=1, actionFinder=lambda x: A,N=5000)
+    dqn = DQfD.DeepQL(Net, lr=0.002, gamma=1, actionFinder=lambda x: A, N=5000,n_step=5)
     process = []
     randomness = []
     epoch = 100
@@ -95,16 +101,19 @@ if __name__ == "__main__":
     lam = -math.log((1 - eps_end) / N) / epoch
     total = 0
     count = 0  # successful count
-    with open("CartPoleDemo.txt","r") as file:
-        data=json.load(file)
-        for k,v in data.items():
-            for s,a,r,s_,done in v:
-                dqn.storeTransition(s,a,r,s_,done,True)
-    for i in range(1000):
-        if i % 100 == 0:
-            print("pretraining:",i)
-        dqn.update()
+    start = 0
+    with open("CartPoleDemo.txt", "r") as file:
+        data = json.load(file)
+        for k, v in data.items():
+            for s, a, r, s_, done in v:
+                start += 1
+                dqn.storeDemoTransition(s, a, r, s_, done, int(k))
 
+    dqn.replay.tree.start = start
+    for i in range(500):
+        if i % 100 == 0:
+            print("pretraining:", i)
+        dqn.update()
 
     for i in range(epoch):
         print(i)
@@ -119,7 +128,7 @@ if __name__ == "__main__":
             s_, r, done, _ = env.step(a[0])
             total += r
             r = -1 if done and total < 500 else 0.002
-            dqn.storeTransition(s, a, r, s_, done,False)
+            dqn.storeTransition(s, a, r, s_, done)
             dqn.update()
             s = s_
             if done:
@@ -128,6 +137,7 @@ if __name__ == "__main__":
                 process.append(total)
                 break
 
+    plt.show()
     total = 0
     s = env.reset()
     dqn.eps = 1

@@ -19,9 +19,8 @@ class WeightedMSE(nn.Module):
         for input, target, weight in zip(inputs, targets, weights):
             error = input - target
             l += error ** 2 * weight
-            errors.append(math.fabs(error))
 
-        return errors, l / weights.shape[0]
+        return l / weights.shape[0]
 
 
 #the following code is from
@@ -39,8 +38,15 @@ class Memory:  # stored as ( s, a, r, s_ ) in SumTree
     def _get_priority(self, error):
         return (error + self.e) ** self.a
 
-    def add(self, error, sample):
-        p = self._get_priority(error)
+    def add(self, sample,error=None):
+        if error is None:
+            p = self.tree.tree[0] #max priority for new data
+            if p == 0:
+                p = 0.1
+            else:
+                p = self.tree.get(p*0.9)[1]
+        else:
+            p = self._get_priority(error)
         self.tree.add(p, sample)
 
     def sample(self, n):

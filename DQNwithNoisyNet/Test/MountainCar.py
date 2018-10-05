@@ -83,7 +83,8 @@ if __name__ == "__main__":
     s = env.reset()
     s = torch.Tensor(s)
     A=[[0],[1],[2]]
-    dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2, lr=0.001, noisy=True, gamma=0.9, N=10000, C=500, actionFinder=lambda x:A)
+    dqn = DQN_NoisyNet.DeepQL(NoisyNet, lr=0.001, gamma=0.9, N=10000, C=500, actionFinder=lambda x:A)
+    #dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2, lr=0.001, gamma=0.9, N=10000, C=500, actionFinder=lambda x:A)
     process = []
     epoch = 80
     eps_start = 0.05

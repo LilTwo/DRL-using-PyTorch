@@ -12,6 +12,7 @@ class SumTree:
         self.tree = numpy.zeros(2 * capacity - 1)
         self.data = numpy.zeros(capacity, dtype=object)
         self.n_entries = 0
+        self.start = 0
 
     # update to the root node
     def _propagate(self, idx, change):
@@ -47,7 +48,7 @@ class SumTree:
 
         self.write += 1
         if self.write >= self.capacity:
-            self.write = 0
+            self.write = self.start
 
         if self.n_entries < self.capacity:
             self.n_entries += 1
@@ -69,3 +70,7 @@ class SumTree:
 
 if __name__ == "__main__":
     print("SumTree test")
+    tree=SumTree(500)
+    tree.add(0.1,[1,1])
+    tree.add(0.3,[2,2])
+    print(tree.get(0.4*0.99))

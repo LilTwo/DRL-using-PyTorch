@@ -1,7 +1,8 @@
 from os import path
 import sys
-local=path.abspath(__file__)
-root=path.dirname(path.dirname(path.dirname(local)))
+
+local = path.abspath(__file__)
+root = path.dirname(path.dirname(path.dirname(local)))
 if root not in sys.path:
     sys.path.append(root)
 
@@ -46,8 +47,8 @@ class Net2(nn.Module):
 class NoisyNet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.fc1_s = NoisyLinear(4, 40)
-        self.fc1_a = NoisyLinear(1, 40)
+        self.fc1_s = NoisyLinear(4, 40,)
+        self.fc1_a = NoisyLinear(1, 40,)
         self.fc2 = NoisyLinear(40, 1)
 
     def forward(self, s, a):
@@ -84,7 +85,9 @@ if __name__ == "__main__":
     env = gym.make('CartPole-v1')
     s = env.reset()
     A = [[0], [1]]
-    dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2, noisy=True, lr=0.002, gamma=1, actionFinder=lambda x: A)
+    actionFinder = lambda x:A
+    dqn = DQN_NoisyNet.DeepQL(Net,lr=0.002, gamma=1,actionFinder=actionFinder)
+    #dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2,lr=0.003, gamma=1)
     process = []
     randomness = []
     epoch = 200
@@ -126,10 +129,10 @@ if __name__ == "__main__":
         plt.show()
     env.close()
 
-    #torch.save(dqn.net.state_dict(),"./CartPoleExpert.txt")
+    # torch.save(dqn.net.state_dict(),"./CartPoleExpert.txt")
     # dqn.eps=1
     total = 0
-    #dqn.net.load_state_dict(torch.load("./CartPoleExpert.txt"))
+    # dqn.net.load_state_dict(torch.load("./CartPoleExpert.txt"))
     s = env.reset()
     s = torch.Tensor(s)
     while True:
