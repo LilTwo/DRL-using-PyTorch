@@ -1,5 +1,4 @@
 import math
-
 import torch
 from torch.nn.parameter import Parameter
 from torch import nn

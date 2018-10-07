@@ -3,10 +3,10 @@ import numpy as np
 if __package__:
     from .SumTree import SumTree
 else:
-    from SumTree import SumTree
+    from Common.SumTree import SumTree
 import torch.nn as nn
 import torch
-import math
+
 
 #MSE with importance sampling
 class WeightedMSE(nn.Module):

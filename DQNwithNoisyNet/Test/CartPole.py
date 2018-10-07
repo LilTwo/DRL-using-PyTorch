@@ -1,10 +1,8 @@
 from os import path
 import sys
-
-local = path.abspath(__file__)
-root = path.dirname(path.dirname(path.dirname(local)))
-if root not in sys.path:
-    sys.path.append(root)
+parent_dir = path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
 import gym
 import torch
@@ -86,7 +84,7 @@ if __name__ == "__main__":
     s = env.reset()
     A = [[0], [1]]
     actionFinder = lambda x:A
-    dqn = DQN_NoisyNet.DeepQL(Net,lr=0.002, gamma=1,actionFinder=actionFinder)
+    dqn = DQN_NoisyNet.DeepQL(NoisyNet,lr=0.002, gamma=1,actionFinder=actionFinder)
     #dqn = DQN_NoisyNet.DeepQLv2(NoisyNet2,lr=0.003, gamma=1)
     process = []
     randomness = []
@@ -102,7 +100,7 @@ if __name__ == "__main__":
         print(i)
         if dqn.noisy:
             m = methodcaller("randomness")
-            *_, rlast = map(m, dqn.net.children())  # only record the randomness of last layer
+            *_, rlast = map(m, dqn.vc.predictNet.children())  # only record the randomness of last layer
             randomness.append(rlast)
         dqn.eps = 1 - N * math.exp(-lam * i)
         count = count + 1 if total >= 500 else 0

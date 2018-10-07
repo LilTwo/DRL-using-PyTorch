@@ -1,10 +1,8 @@
 from os import path
 import sys
-
-local = path.abspath(__file__)
-root = path.dirname(path.dirname(path.dirname(local)))
-if root not in sys.path:
-    sys.path.append(root)
+parent_dir = path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
 import gym
 import torch
