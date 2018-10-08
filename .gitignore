@@ -1,4 +1,6 @@
 *.npy
 *.txt
 *.swp
-test.py
+test.p
+*.py
+/__pycache__

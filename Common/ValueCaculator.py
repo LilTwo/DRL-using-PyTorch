@@ -39,7 +39,7 @@ class ValueCalculator1:
 
     def calcQ(self, net, s, A):
         # 1.single state, one or multiple actions
-        # 2.muliplte states, one action per state
+        # 2.muliplte states, one action per state, s must be a list of tensors
         if isinstance(s, torch.Tensor) and s.dim() == 1:  # situation 1
             A = torch.Tensor(A)
             if A.dim() == 1:
@@ -58,7 +58,7 @@ class ValueCalculator1:
         net.eval()
         A = self.actionFinder(state)
         Q = self.calcQ(net, state, A)
-        A = [a for q,a in sorted(zip(Q, A),reverse=True)]
+        A = [a for q,a in sorted(zip(Q, A),reverse=True,key=lambda x:x[0])]
         net.train()
         return A
 
@@ -77,10 +77,10 @@ class ValueCalculator2:
         self.updateTargetNet()
 
     def calcQ(self, net, s, A):
-        # 1.single state
-        # 2.muliplte states, one action per state
+        # 1.single state, one or multiple actions
+        # 2.muliplte states, one action per state, s must be a list of tensors
         if isinstance(s, torch.Tensor) and s.dim() == 1:  # situation 1
-            return torch.Tensor([net(s)[a] for a in A])
+            return torch.Tensor([net(s)[a] for a in A]).squeeze()
 
         if not isinstance(s, torch.Tensor):  # situation 2
             s = torch.stack(s)

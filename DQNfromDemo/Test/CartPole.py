@@ -91,7 +91,8 @@ if __name__ == "__main__":
     env = gym.make('CartPole-v1')
     s = env.reset()
     A = [[0], [1]]
-    dqn = DQfD.DeepQL(Net, lr=0.002, gamma=1, actionFinder=lambda x: A, N=5000,n_step=5)
+    af = lambda x:A
+    dqn = DQfD.DeepQL(Net2, lr=0.002, gamma=1.0, actionFinder=None, N=5000,n_step=1)
     process = []
     randomness = []
     epoch = 100
@@ -118,6 +119,7 @@ if __name__ == "__main__":
     for i in range(epoch):
         print(i)
         dqn.eps = 1 - N * math.exp(-lam * i)
+        dqn.eps = 0.9
         count = count + 1 if total >= 500 else 0
         if count >= 2:
             dqn.eps = 1
