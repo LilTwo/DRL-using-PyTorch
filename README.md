@@ -1,4 +1,4 @@
-# DRL-using-PyTorch
+# 1 DRL-using-PyTorch
 PyTorch implementations of Deep Reinforcement Algorithms
 
 All the following DQN variations are derived from DQNwithNoisyNet folder and already contain DDQN, prioritized replay, fixed target　network.
